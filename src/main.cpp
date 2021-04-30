@@ -12,14 +12,16 @@ using namespace std;
 
 void main()
 {
+	//int GlobalW = 4096;
+	//int GlobalH = 4096;
 	//int GlobalW = 1024;
 	//int GlobalH = 1024;
-	int GlobalW = 512;
-	int GlobalH = 512;
+	//int GlobalW = 512;
+	//int GlobalH = 512;
 	//int GlobalW = 256;
 	//int GlobalH = 256;
-	//int GlobalW = 128;
-	//int GlobalH = 128;
+	int GlobalW = 128;
+	int GlobalH = 128;
 	//int GlobalW = 64;
 	//int GlobalH = 64;
 	//int GlobalW = 32;
@@ -61,15 +63,17 @@ void main()
 
 	string model_path = "C://models//OFF//";
 	//string model_name = "bunny2"; SearchRad = 0.00495676;
-	//string model_name = "bunny2_2000"; 
-	string model_name = "armadillo";  SearchRad = 0.904385;
-	//string model_name = "ant";
-	//string model_name = "bird";
-	//string model_name = "human"; SearchRad = 0.12313;
-	//string model_name = "elephant";
+	//string model_name = "armadillo";  SearchRad = 0.904385;
+	//string model_name = "ant"; SearchRad = 0.0278831;
+	//string model_name = "bird"; SearchRad = 0.028972;
+	//string model_name = "glass"; SearchRad = 0.0230571;
+	string model_name = "cup"; SearchRad = 0.0264987;
+	//string model_name = "human"; SearchRad = 0.024626;
+	//string model_name = "elephant"; SearchRad = 0.0132349;
 	//string model_name = "dragon3";
-	//string model_name = "glass";
-	//string model_name = "cup";
+	//string model_name = "dragon2";
+	
+	
 	ifstream input_file(model_path + model_name + ".OFF");
 
 
@@ -146,8 +150,8 @@ void main()
 	//compute dds//
 	///////////////
 
-	bool DoSortFrags = false;
-	//bool DoSortFrags = true;
+	//bool DoSortFrags = false;
+	bool DoSortFrags = true;
 
 	
 	DDS* dds = new DDS(GlobalW, GlobalH, ViewWidth, &coords, vmMat, pvmOrthoMat);
@@ -156,7 +160,7 @@ void main()
 	//delete dds;
 
 	
-	SearchRad = ViewWidth / GlobalW * 3;
+	//SearchRad = ViewWidth / GlobalW * 2;
 	cout << "search rad: " << SearchRad << "\n";
 
 	int k = 7;

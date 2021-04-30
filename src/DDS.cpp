@@ -469,7 +469,16 @@ float DDS::BuildDDS(bool DoSortFrags, bool dd)
 	return milliseconds;
 }
 
+void DDS::findKNN(int k, float SearchRad, bool DoSortFrags)
+{
+	if (DoSortFrags)
+		findKNNwithSort(k, SearchRad);
+	else
+		findKNN(k, SearchRad);
+}
+
 DDS::~DDS()
 {
 	FreeMemory();
 }
+

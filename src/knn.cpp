@@ -1,4 +1,5 @@
 #include "DDS.h"
+#include<nvml.h>
 
 void DDS::TestFindKNN()
 {
@@ -58,12 +59,7 @@ void DDS::TestFindKNN()
 }
 
 
-void DDS::findKNNWithSort(int k, float SearchRad)
-{
-	
-}
-
-void DDS::findKNNWithoutSort(int k, float SearchRad)
+void DDS::findKNN(int k, float SearchRad)
 {
 	float milliseconds;
 
@@ -88,13 +84,9 @@ void DDS::findKNNWithoutSort(int k, float SearchRad)
 	//FillAllWithValue(pixelIn, len * len, false);
 	FillAllWithValue(pixelIn, len * len, true); //all true, temporarily !!
 
-	//thread per pixel : determine if pixel is in. fill a bool array.
-
-
 	//make a count array of size sqr * qs
 	cudaMalloc((void**)&sncount, len * len * qnum * sizeof(int));
 	FillAllWithValue(sncount, len * len * qnum, 0);
-
 
 	//thread per(q, pixel): copy counts(0 for out pixels)
 	CopyCountsCuda(qnum, len, globalW, globalH, matrixPVM, vpos, xfcount, pixelIn, sncount);
@@ -104,19 +96,15 @@ void DDS::findKNNWithoutSort(int k, float SearchRad)
 	cudaMalloc((void**)&snoffset, len * len * qnum * sizeof(int));
 	CreateNbsOffsetArrayCuda(len * len * qnum, sncount, snoffset);
 
-
 	//get sums in sums array(of size q)
 	NbsNum = SumNbsCuda(qnum * len * len, sncount);
 
-	cout << "num of all nbs for all qs: " << NbsNum << "\n";
-	
 	// make vertex and distance arrays(of size sum of sums)
 	cudaMalloc((void**)&NbVertexDist, NbsNum * sizeof(unsigned long long));
 	cudaMalloc((void**)&NbVertex, NbsNum * sizeof(int));
 	
 	//thread per(q, pixel) : calculate distance to q, save vertex id, save(q, distance)
 	FillDistanceCuda(qnum, len, globalW, globalH, matrixPVM, vpos, xfcount, xfoffset, FragVertex, pixelIn, snoffset, NbVertex, NbVertexDist);
-	
 	
 	//sort the big array!
 	SortNeighborsCuda(NbsNum, NbVertex, NbVertexDist);
@@ -130,9 +118,18 @@ void DDS::findKNNWithoutSort(int k, float SearchRad)
 	//copy in new array
 	Nbs.resize(qnum); for (int i = 0; i < qnum; i++) {		Nbs[i].resize(k); for (int j = 0; j < k; j++) Nbs[i][j] = -1;	}
 	CopyKNeighborsCuda(k, SearchRad, qnum, len, sncount, NbsNum, NbVertex, vxPos->size(), vpos, Nbs);
-	//int k, float searchRad, int qnum, int len, int* sncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs)
-
+	
 	//TestFindKNN();
+
+	/*nvmlDevice_t dev;
+	nvmlDeviceGetHandleByIndex(0, &dev);
+	nvmlMemory_t mem;
+	nvmlReturn_t nvmlret = nvmlDeviceGetMemoryInfo(dev, &mem);*/
+
+	//size_t freeM, totalM;
+	//cudaMemGetInfo(&freeM, &totalM);
+
+	cout << "num of all nbs for all qs: " << NbsNum << "\n";
 
 	cout << "***kNN search time: " << milliseconds << '\n';
 
@@ -148,13 +145,5 @@ void DDS::findKNNWithoutSort(int k, float SearchRad)
 
 	}
 
-}
-
-void DDS::findKNN(int k, float SearchRad, bool DoSortFrags)
-{
-	if(DoSortFrags)
-		findKNNWithSort(k, SearchRad);
-	else
-		findKNNWithoutSort(k, SearchRad);
 }
 
