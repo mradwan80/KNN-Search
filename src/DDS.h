@@ -115,10 +115,12 @@ void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount,
 void CalculateSquareSizeCuda(int qnum, float* qrads, bool* qkfound, float cellWidth, int* qscount);
 void CreateSquaresOffsetArrayCuda(int n, int* qscount, int* qsoffset);
 int SumSPixelsCuda(int n, int* qscount);
-void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex,  int* qncount);
+//void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex,  int* qncount);
+void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, float* FragDepth, int* qncount);
 void CreateNbsOffsetArrayCudaS(int n, int* qncount, int* qnoffset);
 int SumNbsCudaS(int n, int* qncount);
-void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
+//void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
+void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
 void UpdateRadsCuda(int qnum, int k, int* qncount, bool* qkfound, float* qrads);
 bool AllKNbsFoundCuda(int qnum, bool* qkfound);
 void SortNeighborsCudaS(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist);

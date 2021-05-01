@@ -98,16 +98,10 @@ void DebugBinaryCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool
 }*/
 
 __global__
-void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount)
+void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, float* FragDepth, int* qncount)
 {
-	//for each q/, go through
-	//project q, get the pixel
-	//go through all the points in this pixel
-	//start from beginning, add as long as distance lass than rad
-	//
 
 	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
-
 	
 	if (qspxl < sPixelsNum)
 	{
@@ -121,7 +115,6 @@ void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 			int first = 0; int last = qnum - 1;
 			int mid;
 			bool found = false;
-			//while (!found && first <= last)
 			while (!found)
 			{
 				mid = (first + last) / 2;
@@ -135,14 +128,8 @@ void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 						first = mid + 1;
 				}
 			}
-
-
-			//if (!found) return;
-
 			q = mid - 1;
 		}
-
-		//q = 5;
 
 		if (!qkfound[q])
 		{
@@ -180,21 +167,22 @@ void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 				return;
 
 			//decide what is the distance range allowed in the cetain pixel (wrt the qpixel)
+			float qdpt = vmMat[2] * qx + vmMat[6] * qy + vmMat[10] * qz + vmMat[14] * qw;
+			float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
+			float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
+			float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
+			float pxlradsqr = rad * rad - pxldiffsqr;
+			
 
 			//go through distances of vxs in this pixel
 			int pcount = 0;
 			for (int j = 0; j < xfcount[pxl]; j++)
 			{
 				int pindex = xfoffset[pxl] + j;
-				int p = FragVertex[pindex];
+				float pdpt = FragDepth[pindex];
+				float zdiff = abs(qdpt - pdpt);
 
-				float x = vpos[3 * p + 0];
-				float y = vpos[3 * p + 1];
-				float z = vpos[3 * p + 2];
-
-				float qpdst = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz);
-
-				if (qpdst < rad * rad)
+				if (zdiff * zdiff <= pxlradsqr)
 					pcount++;
 
 			}
@@ -207,9 +195,9 @@ void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 
 }
 
-void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount)
+void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, float* FragDepth, int* qncount)
 {
-	CountNeighborsKernel << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, pvmMat, vpos, qrads, xfcount, xfoffset, FragVertex, qncount);
+	CountNeighborsKernel << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, vmMat, pvmMat, vpos, qrads, cellWidth, xfcount, xfoffset, FragDepth, qncount);
 }
 
 void CreateNbsOffsetArrayCudaS(int n, int* qncount, int* qnoffset)
@@ -254,7 +242,7 @@ unsigned long long GenerateVertexDistKeyS(int vertex, float dist)
 }
 
 __global__
-void FillDistanceKernelS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceKernelS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
 
 	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
@@ -272,7 +260,6 @@ void FillDistanceKernelS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, 
 			int first = 0; int last = qnum - 1;
 			int mid;
 			bool found = false;
-			//while (!found && first <= last)
 			while (!found)
 			{
 				mid = (first + last) / 2;
@@ -286,14 +273,8 @@ void FillDistanceKernelS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, 
 						first = mid + 1;
 				}
 			}
-
-
-			//if (!found) return;
-
 			q = mid - 1;
 		}
-
-		//q = 5;
 
 		int qsnum = qscount[q];
 		int len = sqrtf(qsnum);
@@ -331,22 +312,28 @@ void FillDistanceKernelS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, 
 			return;
 
 		//decide what is the distance range allowed in the cetain pixel (wrt the qpixel)
+		float qdpt = vmMat[2] * qx + vmMat[6] * qy + vmMat[10] * qz + vmMat[14] * qw;
+		float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
+		float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
+		float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
+		float pxlradsqr = rad * rad - pxldiffsqr;
+
 
 		//go through distances of vxs in this pixel
 		int pos;
 		for (int j = 0; j < xfcount[pxl]; j++)
 		{
 			int pindex = xfoffset[pxl] + j;
-			int p = FragVertex[pindex];
+			float pdpt = FragDepth[pindex];
+			float zdiff = abs(qdpt - pdpt);
 
-			float x = vpos[3 * p + 0];
-			float y = vpos[3 * p + 1];
-			float z = vpos[3 * p + 2];
-
-			float qpdst = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz);
-
-			if (qpdst < rad * rad)
+			if (zdiff * zdiff <= pxlradsqr)
 			{
+				int p = FragVertex[pindex];
+				float x = vpos[3 * p + 0];
+				float y = vpos[3 * p + 1];
+				float z = vpos[3 * p + 2];
+				float qpdst = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz);
 
 				pos = atomicAdd(&qncount[q], 1);
 
@@ -364,9 +351,9 @@ void FillDistanceKernelS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, 
 
 }
 
-void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
-	FillDistanceKernelS << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, pvmMat, vpos, qrads, xfcount, xfoffset, FragVertex, qncount, qnoffset, NbVertex, NbVertexDist);
+	FillDistanceKernelS << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, vmMat, pvmMat, vpos, qrads, cellWidth, xfcount, xfoffset, FragVertex, FragDepth, qncount, qnoffset, NbVertex, NbVertexDist);
 }
 
 

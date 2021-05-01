@@ -68,7 +68,7 @@ void DDS::findKNNwithSort(int k, float SearchRad)
 		//////////////
 
 
-		CountNeighborsCuda(qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, matrixPVM, vpos, qrads, xfcount, xfoffset, FragVertex, qncount); //count. per(q,pixel). use binary search.
+		CountNeighborsCuda(qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, matrixVM, matrixPVM, vpos, qrads, cellWidth, xfcount, xfoffset, FragDepth, qncount); //count. per(q,pixel). use binary search.
 		cudaDeviceSynchronize(); //sync//
 		
 		UpdateRadsCuda(qnum, k, qncount, qkfound, qrads); //check count. mainly search for any value less than k or more than k+3//
@@ -87,12 +87,23 @@ void DDS::findKNNwithSort(int k, float SearchRad)
 	cudaMalloc((void**)&NbVertex, NbsNum * sizeof(int));
 
 	FillAllWithValue(qncount, qnum, 0); //zero qncount
-	FillDistanceCudaS(qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, matrixPVM, vpos, qrads, xfcount, xfoffset, FragVertex, qncount, qnoffset, NbVertex, NbVertexDist); //fill//
+	FillDistanceCudaS(qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, matrixVM, matrixPVM, vpos, qrads, cellWidth, xfcount, xfoffset, FragVertex, FragDepth, qncount, qnoffset, NbVertex, NbVertexDist); //fill//
 	
 	SortNeighborsCudaS(NbsNum, NbVertex, NbVertexDist); //sort//
 
+	cudaEventRecord(stop);
+
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+
+	cout << "num of all nbs for all qs: " << NbsNum << "\n";
+
+	cout << "***kNN search time: " << milliseconds << '\n';
+
 	Nbs.resize(qnum); for (int i = 0; i < qnum; i++) { Nbs[i].resize(k + 3); for (int j = 0; j < k + 3; j++) Nbs[i][j] = -1; }
 	CopyKNeighborsCudaS(qnum, qncount, NbsNum, NbVertex, Nbs);
+
+	
 
 
 	//for testing purposes
