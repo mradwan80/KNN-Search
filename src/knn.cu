@@ -55,60 +55,27 @@ __global__ void CopyCountsKernel(int qnum, int len, int globalW, int globalH, fl
 
 void CopyCountsCuda(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, bool* pixelIn, int* sncount)
 {
-	/*float milliseconds;
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);*/
-
 	CopyCountsKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, globalW, globalH, pvmMat, vpos, xfcount, pixelIn, sncount);
-
-	/*cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout << "***copy counts time: " << milliseconds << '\n';*/
 
 }
 
 void CreateNbsOffsetArrayCuda(int n, int* sncount, int* snoffset)
 {
-	/*float milliseconds;
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);*/
-
-
 	thrust::device_ptr<int> o = thrust::device_pointer_cast(snoffset);
 	thrust::device_ptr<int> c = thrust::device_pointer_cast(sncount);
 
 	//call thrust function
 	thrust::exclusive_scan(c, c + n, o);
-
-	/*cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout << "***create offset time: " << milliseconds << '\n';*/
 }
 
 
 int SumNbsCuda(int n, int* sncount)
 {
-	/*float milliseconds;
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);*/
 
 	thrust::device_ptr<int> c = thrust::device_pointer_cast(sncount);
 
 	//get count of xfcount//
 	int NbsNum = thrust::reduce(c, c + n, (int)0, thrust::plus<int>());
-
-	/*cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout << "***sum time: " << milliseconds << '\n';*/
 
 	return NbsNum;
 }
@@ -194,30 +161,14 @@ void FillDistanceKernel(int qnum, int len, int globalW, int globalH, float* pvmM
 
 void FillDistanceCuda(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
-	/*float milliseconds;
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);*/
 
 	FillDistanceKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, globalW, globalH, pvmMat, vpos, xfcount, xfoffset, FragVertex, pixelIn, snoffset, NbVertex, NbVertexDist);
 
-	/*cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout << "***fill distance time: " << milliseconds << '\n';*/
 
 }
 
 void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist)
 {
-
-	/*float milliseconds;
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);*/
-
 
 	//device pointers//
 	thrust::device_ptr<int> fv = thrust::device_pointer_cast(NbVertex);
@@ -243,20 +194,10 @@ void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDi
 	thrust::gather(fi, fi + NbsNum, fv, fvt);
 	cudaMemcpy(NbVertex, NbVertexTmp, NbsNum * sizeof(int), cudaMemcpyDeviceToDevice);
 
-	/*cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout << "***sort time: " << milliseconds << '\n';*/
-
-
 }
 
 void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs)
 {
-	//read 25 from sncount. accumulate. if>=7, assign 7, else assign acc
-	//if >=7, copy first 7. else copy acc
-	//update offset
-
 	int* NbVertexHost = new int[NbsNum];
 	cudaMemcpy(NbVertexHost, NbVertex, NbsNum * sizeof(int), cudaMemcpyDeviceToHost);
 	int* sncountHost = new int[qnum * len * len];
@@ -288,13 +229,6 @@ void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount,
 
 
 			float dist = sqrt((vposHost[3 * q + 0] - vposHost[3 * vx + 0]) * (vposHost[3 * q + 0] - vposHost[3 * vx + 0]) + (vposHost[3 * q + 1] - vposHost[3 * vx + 1]) * (vposHost[3 * q + 1] - vposHost[3 * vx + 1]) + (vposHost[3 * q + 2] - vposHost[3 * vx + 2]) * (vposHost[3 * q + 2] - vposHost[3 * vx + 2]));
-
-			/*float dist = SearchRad / 2;
-
-			if (vx >= 0 && vx < q)
-				dist = sqrt((vpos[3 * q + 0] - vpos[3 * vx + 0]) * (vpos[3 * q + 0] - vpos[3 * vx + 0]) + (vpos[3 * q + 1] - vpos[3 * vx + 1]) * (vpos[3 * q + 1] - vpos[3 * vx + 1]) + (vpos[3 * q + 2] - vpos[3 * vx + 2]) * (vpos[3 * q + 2] - vpos[3 * vx + 2]));
-				*/
-
 
 			if (dist < SearchRad)
 				Nbs[q][counter++] = vx;
