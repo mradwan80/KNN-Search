@@ -9,7 +9,7 @@
 #include<thrust/copy.h>
 #include "DDS.h"
 
-__global__ void CopyCountsKernel(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, bool* pixelIn, int* sncount)
+__global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount)
 {
 	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -24,15 +24,15 @@ __global__ void CopyCountsKernel(int qnum, int len, int globalW, int globalH, fl
 			return;
 
 		//get vertex//
-		float x = vpos[3 * q + 0];
-		float y = vpos[3 * q + 1];
-		float z = vpos[3 * q + 2];
-		float w = 1.0;
+		float xq = vpos[3 * q + 0];
+		float yq = vpos[3 * q + 1];
+		float zq = vpos[3 * q + 2];
+		float wq = 1.0;
 
-		float posXpvm = pvmMat[0] * x + pvmMat[4] * y + pvmMat[8] * z + pvmMat[12] * w;
-		float posYpvm = pvmMat[1] * x + pvmMat[5] * y + pvmMat[9] * z + pvmMat[13] * w;
-		float posZpvm = pvmMat[2] * x + pvmMat[6] * y + pvmMat[10] * z + pvmMat[14] * w;
-		float posWpvm = pvmMat[3] * x + pvmMat[7] * y + pvmMat[11] * z + pvmMat[15] * w;
+		float posXpvm = pvmMat[0] * xq + pvmMat[4] * yq + pvmMat[8] * zq + pvmMat[12] * wq;
+		float posYpvm = pvmMat[1] * xq + pvmMat[5] * yq + pvmMat[9] * zq + pvmMat[13] * wq;
+		float posZpvm = pvmMat[2] * xq + pvmMat[6] * yq + pvmMat[10] * zq + pvmMat[14] * wq;
+		float posWpvm = pvmMat[3] * xq + pvmMat[7] * yq + pvmMat[11] * zq + pvmMat[15] * wq;
 
 		//exact pixel of q//
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
@@ -49,13 +49,34 @@ __global__ void CopyCountsKernel(int qnum, int len, int globalW, int globalH, fl
 		//copy counts//
 		sncount[qspxl] = xfcount[pxl];
 
+		int offset = xfoffset[pxl];
+		int pcount = 0;
+		for (int f = 0; f < xfcount[pxl]; f++)
+		{
+			int v = FragVertex[f + offset]; //get vertex//
+			
+			//get pos
+			float x = vpos[3 * v + 0];
+			float y = vpos[3 * v + 1];
+			float z = vpos[3 * v + 2];
+			float w = 1.0;
+
+			float dist = (x - xq) * (x - xq) + (y - yq) * (y - yq) + (z - zq) * (z - zq); //calc distance//
+
+			if (dist <= searchRad * searchRad)
+				pcount++;
+			
+		}
+
+		sncount[qspxl] = pcount;
+
 	}
 
 }
 
-void CopyCountsCuda(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, bool* pixelIn, int* sncount)
+void CopyCountsCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount)
 {
-	CopyCountsKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, globalW, globalH, pvmMat, vpos, xfcount, pixelIn, sncount);
+	CopyCountsKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, searchRad, globalW, globalH, pvmMat, vpos, xfcount, xfoffset, FragVertex, pixelIn, sncount);
 
 }
 
@@ -102,7 +123,7 @@ unsigned long long GenerateVertexDistKey(int vertex, float dist)
 
 
 __global__
-void FillDistanceKernel(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceKernel(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
 	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -149,8 +170,14 @@ void FillDistanceKernel(int qnum, int len, int globalW, int globalH, float* pvmM
 
 			float dist = (x - x2) * (x - x2) + (y - y2) * (y - y2) + (z - z2) * (z - z2);
 
-			NbVertex[snoffset[qspxl] + v2] = vx2;
-			NbVertexDist[snoffset[qspxl] + v2] = GenerateVertexDistKey(q, dist);
+			if (dist <= searchRad * searchRad)
+			{
+				int pos = atomicAdd(&sncount[qspxl], 1);
+
+				NbVertex[snoffset[qspxl] + pos] = vx2;
+				NbVertexDist[snoffset[qspxl] + pos] = GenerateVertexDistKey(q, dist);
+			}
+			
 
 
 		}
@@ -159,10 +186,10 @@ void FillDistanceKernel(int qnum, int len, int globalW, int globalH, float* pvmM
 
 }
 
-void FillDistanceCuda(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
 
-	FillDistanceKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, globalW, globalH, pvmMat, vpos, xfcount, xfoffset, FragVertex, pixelIn, snoffset, NbVertex, NbVertexDist);
+	FillDistanceKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, searchRad, globalW, globalH, pvmMat, vpos, xfcount, xfoffset, FragVertex, pixelIn, sncount, snoffset, NbVertex, NbVertexDist);
 
 
 }

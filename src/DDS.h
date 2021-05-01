@@ -103,12 +103,11 @@ void FillAllWithValue(bool* arr, int sz, bool val);
 void FillAllWithValue(unsigned long long* arr, int sz, unsigned long long val);
 
 //knn functions//
-void CopyCountsCuda(int qum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, bool* pixelIn, int* sncount);
+void CopyCountsCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount);
 void CreateNbsOffsetArrayCuda(int n, int* sncount, int* snoffset);
 int SumNbsCuda(int n, int* sncount);
-void FillDistanceCuda(int qnum, int len, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist);
+void FillDistanceCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist);
 void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist);
-//void CopyKNeighborsCuda(int k, int qnum, int len, int* sncount, int NbsNum, int* NbVertex, vector<vector<int>>& Nbs);
 void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs);
 
 //knn with sort functions//

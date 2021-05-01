@@ -89,7 +89,7 @@ void DDS::findKNN(int k, float SearchRad)
 	FillAllWithValue(sncount, len * len * qnum, 0);
 
 	//thread per(q, pixel): copy counts(0 for out pixels)
-	CopyCountsCuda(qnum, len, globalW, globalH, matrixPVM, vpos, xfcount, pixelIn, sncount);
+	CopyCountsCuda(qnum, len, SearchRad, globalW, globalH, matrixPVM, vpos, xfcount, xfoffset, FragVertex, pixelIn, sncount);
 
 
 	//make offset array(not sure how to do. call thrust multi times ? )
@@ -103,8 +103,10 @@ void DDS::findKNN(int k, float SearchRad)
 	cudaMalloc((void**)&NbVertexDist, NbsNum * sizeof(unsigned long long));
 	cudaMalloc((void**)&NbVertex, NbsNum * sizeof(int));
 	
+	FillAllWithValue(sncount, len * len * qnum, 0);
+
 	//thread per(q, pixel) : calculate distance to q, save vertex id, save(q, distance)
-	FillDistanceCuda(qnum, len, globalW, globalH, matrixPVM, vpos, xfcount, xfoffset, FragVertex, pixelIn, snoffset, NbVertex, NbVertexDist);
+	FillDistanceCuda(qnum, len, SearchRad, globalW, globalH, matrixPVM, vpos, xfcount, xfoffset, FragVertex, pixelIn, sncount, snoffset, NbVertex, NbVertexDist);
 	
 	//sort the big array!
 	SortNeighborsCuda(NbsNum, NbVertex, NbVertexDist);
