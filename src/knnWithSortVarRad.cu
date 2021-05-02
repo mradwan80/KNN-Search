@@ -171,7 +171,8 @@ void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 			float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
 			float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
 			float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
-			float pxlradsqr = rad * rad - pxldiffsqr;
+			//float pxlradsqr = rad * rad - pxldiffsqr;
+			float pxlradsqr = rad * rad * 1.44 - pxldiffsqr;
 			
 
 			//go through distances of vxs in this pixel
@@ -316,7 +317,8 @@ void FillDistanceKernelSV(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 		float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
 		float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
 		float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
-		float pxlradsqr = rad * rad - pxldiffsqr;
+		//float pxlradsqr = rad * rad - pxldiffsqr;
+		float pxlradsqr = rad * rad * 1.44 - pxldiffsqr;
 
 
 		//go through distances of vxs in this pixel
