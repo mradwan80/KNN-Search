@@ -472,9 +472,9 @@ float DDS::BuildDDS(bool DoSortFrags, bool dd)
 void DDS::findKNN(int k, float SearchRad, bool DoSortFrags)
 {
 	if (DoSortFrags)
-		findKNNwithSort(k, SearchRad);
+		kNNsearchWithSort(k, SearchRad);
 	else
-		findKNN(k, SearchRad);
+		kNNsearch(k, SearchRad);
 }
 
 DDS::~DDS()

@@ -59,7 +59,7 @@ void DDS::TestFindKNN()
 }
 
 
-void DDS::findKNN(int k, float SearchRad)
+void DDS::kNNsearch(int k, float SearchRad)
 {
 	float milliseconds;
 
@@ -79,6 +79,8 @@ void DDS::findKNN(int k, float SearchRad)
 	//int scrRad = 2;
 	int scrRad = SearchRad / cellWidth;
 	len = 2 * scrRad + 1;
+
+	cout << "len = " << len << "\n";
 	
 	cudaMalloc((void**)&pixelIn, len * len *sizeof(bool));
 	//FillAllWithValue(pixelIn, len * len, false);

@@ -53,8 +53,9 @@ private:
 	void TestSortFrags();
 	
 
-	void findKNNwithSort(int k, float SearchRad);
-	void findKNN(int k, float SearchRad);
+	void kNNsearch(int k, float SearchRad);
+	void kNNsearchWithSort(int k, float SearchRad);
+	void kNNsearchWithSortVarRad(int k, float SearchRad);
 	
 	void TestFindKNN();
 
@@ -111,19 +112,22 @@ void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDi
 void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs);
 
 //knn with sort functions//
+void CopyCountsCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, float* FragDepth, bool* pixelIn, int* sncount);
+void FillDistanceCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist);
+
+//knn with sort and varying rad functions//
+//SV: sort and var//
 void CalculateSquareSizeCuda(int qnum, float* qrads, bool* qkfound, float cellWidth, int* qscount);
 void CreateSquaresOffsetArrayCuda(int n, int* qscount, int* qsoffset);
 int SumSPixelsCuda(int n, int* qscount);
-//void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex,  int* qncount);
 void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, float* FragDepth, int* qncount);
-void CreateNbsOffsetArrayCudaS(int n, int* qncount, int* qnoffset);
-int SumNbsCudaS(int n, int* qncount);
-//void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* pvmMat, float* vpos, float* qrads, int* xfcount, int* xfoffset, int* FragVertex, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
-void FillDistanceCudaS(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
+void CreateNbsOffsetArrayCudaSV(int n, int* qncount, int* qnoffset);
+int SumNbsCudaSV(int n, int* qncount);
+void FillDistanceCudaSV(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
 void UpdateRadsCuda(int qnum, int k, int* qncount, bool* qkfound, float* qrads);
 bool AllKNbsFoundCuda(int qnum, bool* qkfound);
-void SortNeighborsCudaS(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist);
-void CopyKNeighborsCudaS(int qnum, int* qncount, int NbsNum, int* NbVertex, vector<vector<int>>& Nbs);
+void SortNeighborsCudaSV(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist);
+void CopyKNeighborsCudaSV(int qnum, int* qncount, int NbsNum, int* NbVertex, vector<vector<int>>& Nbs);
 
 //void DebugBinaryCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qspxlBool);
 #pragma once

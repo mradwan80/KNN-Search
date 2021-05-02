@@ -24,15 +24,15 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 			return;
 
 		//get vertex//
-		float xq = vpos[3 * q + 0];
-		float yq = vpos[3 * q + 1];
-		float zq = vpos[3 * q + 2];
-		float wq = 1.0;
+		float qx = vpos[3 * q + 0];
+		float qy = vpos[3 * q + 1];
+		float qz = vpos[3 * q + 2];
+		float qw = 1.0;
 
-		float posXpvm = pvmMat[0] * xq + pvmMat[4] * yq + pvmMat[8] * zq + pvmMat[12] * wq;
-		float posYpvm = pvmMat[1] * xq + pvmMat[5] * yq + pvmMat[9] * zq + pvmMat[13] * wq;
-		float posZpvm = pvmMat[2] * xq + pvmMat[6] * yq + pvmMat[10] * zq + pvmMat[14] * wq;
-		float posWpvm = pvmMat[3] * xq + pvmMat[7] * yq + pvmMat[11] * zq + pvmMat[15] * wq;
+		float posXpvm = pvmMat[0] * qx + pvmMat[4] * qy + pvmMat[8] * qz + pvmMat[12] * qw;
+		float posYpvm = pvmMat[1] * qx + pvmMat[5] * qy + pvmMat[9] * qz + pvmMat[13] * qw;
+		float posZpvm = pvmMat[2] * qx + pvmMat[6] * qy + pvmMat[10] * qz + pvmMat[14] * qw;
+		float posWpvm = pvmMat[3] * qx + pvmMat[7] * qy + pvmMat[11] * qz + pvmMat[15] * qw;
 
 		//exact pixel of q//
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
@@ -46,8 +46,8 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 		if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
 			return;
 
-		//copy counts//
-		sncount[qspxl] = xfcount[pxl];
+		if (xfcount[pxl] == 0)
+			return;
 
 		int offset = xfoffset[pxl];
 		int pcount = 0;
@@ -61,7 +61,7 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 			float z = vpos[3 * v + 2];
 			float w = 1.0;
 
-			float dist = (x - xq) * (x - xq) + (y - yq) * (y - yq) + (z - zq) * (z - zq); //calc distance//
+			float dist = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz); //calc distance//
 
 			if (dist <= searchRad * searchRad)
 				pcount++;
@@ -138,15 +138,15 @@ void FillDistanceKernel(int qnum, int len, float searchRad, int globalW, int glo
 			return;
 
 		//get vertex//
-		float x = vpos[3 * q + 0];
-		float y = vpos[3 * q + 1];
-		float z = vpos[3 * q + 2];
-		float w = 1.0;
+		float qx = vpos[3 * q + 0];
+		float qy = vpos[3 * q + 1];
+		float qz = vpos[3 * q + 2];
+		float qw = 1.0;
 
-		float posXpvm = pvmMat[0] * x + pvmMat[4] * y + pvmMat[8] * z + pvmMat[12] * w;
-		float posYpvm = pvmMat[1] * x + pvmMat[5] * y + pvmMat[9] * z + pvmMat[13] * w;
-		float posZpvm = pvmMat[2] * x + pvmMat[6] * y + pvmMat[10] * z + pvmMat[14] * w;
-		float posWpvm = pvmMat[3] * x + pvmMat[7] * y + pvmMat[11] * z + pvmMat[15] * w;
+		float posXpvm = pvmMat[0] * qx + pvmMat[4] * qy + pvmMat[8] * qz + pvmMat[12] * qw;
+		float posYpvm = pvmMat[1] * qx + pvmMat[5] * qy + pvmMat[9] * qz + pvmMat[13] * qw;
+		float posZpvm = pvmMat[2] * qx + pvmMat[6] * qy + pvmMat[10] * qz + pvmMat[14] * qw;
+		float posWpvm = pvmMat[3] * qx + pvmMat[7] * qy + pvmMat[11] * qz + pvmMat[15] * qw;
 
 		//exact pixel of q//
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
@@ -160,21 +160,24 @@ void FillDistanceKernel(int qnum, int len, float searchRad, int globalW, int glo
 		if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
 			return;
 
-		int offset = xfoffset[pxl];
-		for (int v2 = 0; v2 < xfcount[pxl]; v2++)
-		{
-			int vx2 = FragVertex[v2 + offset];
-			float x2 = vpos[3 * vx2 + 0];
-			float y2 = vpos[3 * vx2 + 1];
-			float z2 = vpos[3 * vx2 + 2];
+		if (xfcount[pxl] == 0)
+			return;
 
-			float dist = (x - x2) * (x - x2) + (y - y2) * (y - y2) + (z - z2) * (z - z2);
+		int offset = xfoffset[pxl];
+		for (int v = 0; v < xfcount[pxl]; v++)
+		{
+			int vx = FragVertex[v + offset];
+			float x = vpos[3 * vx + 0];
+			float y = vpos[3 * vx + 1];
+			float z = vpos[3 * vx + 2];
+
+			float dist = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz);
 
 			if (dist <= searchRad * searchRad)
 			{
 				int pos = atomicAdd(&sncount[qspxl], 1);
 
-				NbVertex[snoffset[qspxl] + pos] = vx2;
+				NbVertex[snoffset[qspxl] + pos] = vx;
 				NbVertexDist[snoffset[qspxl] + pos] = GenerateVertexDistKey(q, dist);
 			}
 			
