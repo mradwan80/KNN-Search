@@ -9,20 +9,14 @@
 #include<thrust/copy.h>
 #include "DDS.h"
 
-__global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount)
+
+__global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* qncount)
 {
-	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (qspxl < qnum * len * len)
+	int q = blockIdx.x * blockDim.x + threadIdx.x;
+
+	while (q < qnum)
 	{
-		int q = qspxl / (len * len);
-		int spxl = qspxl % (len * len);
-		int sx = spxl % len;
-		int sy = spxl / len;
-
-		if (!pixelIn[spxl])
-			return;
-
 		//get vertex//
 		float qx = vpos[3 * q + 0];
 		float qy = vpos[3 * q + 1];
@@ -38,62 +32,75 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
 		int qyscreen = (int)(((posYpvm / posWpvm) / 2 + 0.5) * globalH);
 
-		//pixel in the square, based on thread//
-		int xscreen = (qxscreen - len/2) + sx;
-		int yscreen = (qyscreen - len/2) + sy;
-		int pxl = xscreen + yscreen * globalW;
 
-		if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
-			return;
-
-		if (xfcount[pxl] == 0)
-			return;
-
-		int offset = xfoffset[pxl];
 		int pcount = 0;
-		for (int f = 0; f < xfcount[pxl]; f++)
+		for (int sx = 0; sx < len; sx++)
 		{
-			int v = FragVertex[f + offset]; //get vertex//
-			
-			//get pos
-			float x = vpos[3 * v + 0];
-			float y = vpos[3 * v + 1];
-			float z = vpos[3 * v + 2];
-			float w = 1.0;
+			for (int sy = 0; sy < len; sy++)
+			{
+				//pixel in the square, based on thread//
+				int xscreen = (qxscreen - len / 2) + sx;
+				int yscreen = (qyscreen - len / 2) + sy;
+				int pxl = xscreen + yscreen * globalW;
 
-			float dist = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz); //calc distance//
+				if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
+					continue;
 
-			if (dist <= searchRad * searchRad)
-				pcount++;
-			
+				if (xfcount[pxl] == 0)
+					continue;
+
+				int offset = xfoffset[pxl];
+				int count = xfcount[pxl];
+				for (int f = 0; f < count; f++)
+				{
+					int findex = offset + f;
+
+					//get pos
+					float x = FragX[findex];
+					float y = FragY[findex];
+					float z = FragZ[findex];
+
+					float dist = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz); //calc distance//
+
+					if (dist <= searchRad * searchRad)
+						pcount++;
+
+				}
+
+
+			}
 		}
+		
+		
+		qncount[q] = pcount;
 
-		sncount[qspxl] = pcount;
-
+		q += gridDim.x * blockDim.x;
 	}
 
 }
 
-void CopyCountsCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount)
+void CopyCountsCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* qncount)
 {
-	CopyCountsKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, searchRad, globalW, globalH, pvmMat, vpos, xfcount, xfoffset, FragVertex, pixelIn, sncount);
+	int gridsize = qnum / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
 
+	CopyCountsKernel << < gridsize, blocksize >> > (qnum, len, searchRad, globalW, globalH, pvmMat, xfcount, xfoffset, vpos, FragX, FragY, FragZ, qncount);
 }
 
-void CreateNbsOffsetArrayCuda(int n, int* sncount, int* snoffset)
+void CreateNbsOffsetArrayCuda(int n, int* qncount, int* qnoffset)
 {
-	thrust::device_ptr<int> o = thrust::device_pointer_cast(snoffset);
-	thrust::device_ptr<int> c = thrust::device_pointer_cast(sncount);
+	thrust::device_ptr<int> o = thrust::device_pointer_cast(qnoffset);
+	thrust::device_ptr<int> c = thrust::device_pointer_cast(qncount);
 
 	//call thrust function
 	thrust::exclusive_scan(c, c + n, o);
 }
 
 
-int SumNbsCuda(int n, int* sncount)
+int SumNbsCuda(int n, int* qncount)
 {
 
-	thrust::device_ptr<int> c = thrust::device_pointer_cast(sncount);
+	thrust::device_ptr<int> c = thrust::device_pointer_cast(qncount);
 
 	//get count of xfcount//
 	int NbsNum = thrust::reduce(c, c + n, (int)0, thrust::plus<int>());
@@ -122,21 +129,13 @@ unsigned long long GenerateVertexDistKey(int vertex, float dist)
 }
 
 
-__global__
-void FillDistanceKernel(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
+__global__ void FillDistanceKernel(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* FragVertex, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
-	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (qspxl < qnum * len * len)
+	int q = blockIdx.x * blockDim.x + threadIdx.x;
+
+	while (q < qnum)
 	{
-		int q = qspxl / (len * len);
-		int spxl = qspxl % (len * len);
-		int sx = spxl % len;
-		int sy = spxl / len;
-
-		if (!pixelIn[spxl])
-			return;
-
 		//get vertex//
 		float qx = vpos[3 * q + 0];
 		float qy = vpos[3 * q + 1];
@@ -152,49 +151,66 @@ void FillDistanceKernel(int qnum, int len, float searchRad, int globalW, int glo
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
 		int qyscreen = (int)(((posYpvm / posWpvm) / 2 + 0.5) * globalH);
 
-		//pixel in the square, based on thread//
-		int xscreen = (qxscreen - len/2) + sx;
-		int yscreen = (qyscreen - len/2) + sy;
-		int pxl = xscreen + yscreen * globalW;
+		int qoffset = qnoffset[q];
 
-		if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
-			return;
-
-		if (xfcount[pxl] == 0)
-			return;
-
-		int offset = xfoffset[pxl];
-		for (int v = 0; v < xfcount[pxl]; v++)
+		int pcount = 0;
+		for (int sx = 0; sx < len; sx++)
 		{
-			int vx = FragVertex[v + offset];
-			float x = vpos[3 * vx + 0];
-			float y = vpos[3 * vx + 1];
-			float z = vpos[3 * vx + 2];
-
-			float dist = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz);
-
-			if (dist <= searchRad * searchRad)
+			for (int sy = 0; sy < len; sy++)
 			{
-				int pos = atomicAdd(&sncount[qspxl], 1);
+				//pixel in the square, based on thread//
+				int xscreen = (qxscreen - len / 2) + sx;
+				int yscreen = (qyscreen - len / 2) + sy;
+				int pxl = xscreen + yscreen * globalW;
 
-				NbVertex[snoffset[qspxl] + pos] = vx;
-				NbVertexDist[snoffset[qspxl] + pos] = GenerateVertexDistKey(q, dist);
+				if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
+					continue;
+
+				if (xfcount[pxl] == 0)
+					continue;
+
+				int offset = xfoffset[pxl];
+				int count = xfcount[pxl];
+				for (int f = 0; f < count; f++)
+				{
+					int findex = offset + f;
+					
+					//get pos
+					float x = FragX[findex];
+					float y = FragY[findex];
+					float z = FragZ[findex];
+
+					float dist = (x - qx) * (x - qx) + (y - qy) * (y - qy) + (z - qz) * (z - qz); //calc distance//
+
+					if (dist <= searchRad * searchRad)
+					{
+						int vx = FragVertex[findex];
+
+						NbVertex[qoffset + pcount] = vx;
+						NbVertexDist[qoffset + pcount] = GenerateVertexDistKey(q, dist);
+
+						pcount++;
+					}
+						
+
+				}
+
+
 			}
-			
-
-
 		}
 
+
+		q += gridDim.x * blockDim.x;
 	}
 
 }
 
-void FillDistanceCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* FragVertex, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
+	int gridsize = qnum / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
 
-	FillDistanceKernel << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, searchRad, globalW, globalH, pvmMat, vpos, xfcount, xfoffset, FragVertex, pixelIn, sncount, snoffset, NbVertex, NbVertexDist);
-
-
+	FillDistanceKernel << < gridsize, blocksize >> > (qnum, len, searchRad, globalW, globalH, pvmMat, xfcount, xfoffset, vpos, FragX, FragY, FragZ, FragVertex, qnoffset, NbVertex, NbVertexDist);
 }
 
 void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist)
@@ -226,29 +242,22 @@ void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDi
 
 }
 
-void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs)
+void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* qncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs)
 {
 	int* NbVertexHost = new int[NbsNum];
 	cudaMemcpy(NbVertexHost, NbVertex, NbsNum * sizeof(int), cudaMemcpyDeviceToHost);
-	int* sncountHost = new int[qnum * len * len];
-	cudaMemcpy(sncountHost, sncount, qnum * len * len * sizeof(int), cudaMemcpyDeviceToHost);
+	int* qncountHost = new int[qnum];
+	cudaMemcpy(qncountHost, qncount, qnum * sizeof(int), cudaMemcpyDeviceToHost);
 	float* vposHost = new float[vnum * 3];
 	cudaMemcpy(vposHost, vpos, vnum * 3 * sizeof(float), cudaMemcpyDeviceToHost);
 
 	int offset = 0;
 	for (int q = 0; q < qnum; q++)
 	{
-		int start = len * len * q;
-		int end = start + len * len;
-		int acc = 0;
-		for (int i = start; i < end; i++)
-		{
-			acc += sncountHost[i];
-		}
-		
+
 		int copyn;
-		if (acc < k)
-			copyn = acc;
+		if (qncountHost[q] < k)
+			copyn = qncountHost[q];
 		else
 			copyn = k;
 
@@ -263,10 +272,8 @@ void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* sncount,
 			if (dist < SearchRad)
 				Nbs[q][counter++] = vx;
 		}
-		offset += acc;
+		offset += qncountHost[q];
 
 	}
 
 }
-
-

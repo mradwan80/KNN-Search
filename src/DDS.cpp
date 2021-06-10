@@ -9,6 +9,15 @@
 //#include "ClassesDefinitions.h"
 using namespace std;
 
+void checkCUDAError(const char* msg) {
+	cudaError_t err = cudaGetLastError();
+	if (cudaSuccess != err) {
+		fprintf(stderr, "Cuda error: %s: %s.\n", msg, cudaGetErrorString(err));
+		getchar();
+		exit(EXIT_FAILURE);
+	}
+}
+
 DDS::DDS() {}
 
 DDS::DDS(int w, int h, float viewWidthI, vector<pointCoords>* Pos, glm::mat4 vmMatI, glm::mat4 pvmMatI)
@@ -398,7 +407,15 @@ void DDS::TestSortFrags()
 
 }
 
+void DDS::GetFragsCoords()
+{
+	cudaMalloc((void**)&FragX, FragsNum * sizeof(float));
+	cudaMalloc((void**)&FragY, FragsNum * sizeof(float));
+	cudaMalloc((void**)&FragZ, FragsNum * sizeof(float));
 
+	GetFragsCoordsCuda(FragsNum, FragVertex, vpos, FragX, FragY, FragZ);
+
+}
 
 void DDS::FreeMemory()
 {
@@ -444,14 +461,17 @@ float DDS::BuildDDS(bool DoSortFrags, bool dd)
 	cudaEventRecord(start);
 
 	PrepareInput();
-	CountFrags();
+	CountFrags(); checkCUDAError("Count failed");
 	//TestCountFrags();
-	CreateOffsetAndFragsVectors(DoSortFrags);
+	CreateOffsetAndFragsVectors(DoSortFrags); checkCUDAError("Create Vectors failed");
 	//TestCreateOffset();
-	ProjectFrags(DoSortFrags);
+	ProjectFrags(DoSortFrags); checkCUDAError("Project failed");
 	//TestProjectFrags();
-	if(DoSortFrags)
+	if (DoSortFrags)
+	{
 		SortFrags();
+		checkCUDAError("Sort failed");
+	}
 	
 	cudaEventRecord(stop);
 
@@ -475,6 +495,7 @@ void DDS::findKNN(int k, float SearchRad, bool DoSortFrags)
 		kNNsearchWithSort(k, SearchRad);
 	else
 		kNNsearch(k, SearchRad);
+		//kNNsearchSimple(k, SearchRad);
 }
 
 DDS::~DDS()

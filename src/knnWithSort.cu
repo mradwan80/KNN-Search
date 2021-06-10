@@ -9,19 +9,12 @@
 #include<thrust/copy.h>
 #include "DDS.h"
 
-__global__ void CopyCountsKernelS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, float* FragDepth, bool* pixelIn, int* sncount)
+__global__ void CopyCountsKernelS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragDepth, int* qncount)
 {
-	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
+	int q = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (qspxl < qnum * len * len)
+	while (q < qnum)
 	{
-		int q = qspxl / (len * len);
-		int spxl = qspxl % (len * len);
-		int sx = spxl % len;
-		int sy = spxl / len;
-
-		if (!pixelIn[spxl])
-			return;
 
 		//get vertex//
 		float qx = vpos[3 * q + 0];
@@ -38,40 +31,50 @@ __global__ void CopyCountsKernelS(int qnum, int len, float searchRad, float cell
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
 		int qyscreen = (int)(((posYpvm / posWpvm) / 2 + 0.5) * globalH);
 
-		//pixel in the square, based on thread//
-		int xscreen = (qxscreen - len / 2) + sx;
-		int yscreen = (qyscreen - len / 2) + sy;
-		int pxl = xscreen + yscreen * globalW;
-
-		if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
-			return;
-
-		if (xfcount[pxl] == 0)
-			return;
-
-		//decide what is the distance range allowed in the cetain pixel (wrt the qpixel)
-		float qdpt = vmMat[2] * qx + vmMat[6] * qy + vmMat[10] * qz + vmMat[14] * qw;
-		float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
-		float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
-		float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
-		//float pxlradsqr = searchRad * searchRad - pxldiffsqr;
-		float pxlradsqr = searchRad * searchRad * 1.44 - pxldiffsqr;
-
-		//go through distances of vxs in this pixel
 		int pcount = 0;
-		int offset = xfoffset[pxl];
-		for (int j = 0; j < xfcount[pxl]; j++)
+		for (int sx = 0; sx < len; sx++)
 		{
-			int pindex = offset + j;
-			float pdpt = FragDepth[pindex];
-			float zdiff = abs(qdpt - pdpt);
+			for (int sy = 0; sy < len; sy++)
+			{
 
-			if (zdiff * zdiff <= pxlradsqr)
-				pcount++;
+				//pixel in the square, based on thread//
+				int xscreen = (qxscreen - len / 2) + sx;
+				int yscreen = (qyscreen - len / 2) + sy;
+				int pxl = xscreen + yscreen * globalW;
 
+				if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
+					continue;
+
+				if (xfcount[pxl] == 0)
+					continue;
+
+				//decide what is the distance range allowed in the cetain pixel (wrt the qpixel)
+				float qdpt = vmMat[2] * qx + vmMat[6] * qy + vmMat[10] * qz + vmMat[14] * qw;
+				float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
+				float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
+				float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
+				//float pxlradsqr = searchRad * searchRad - pxldiffsqr;
+				float pxlradsqr = searchRad * searchRad * 1.44 - pxldiffsqr;
+
+				//go through distances of vxs in this pixel
+				int offset = xfoffset[pxl];
+				int count = xfcount[pxl];
+				for (int f = 0; f < count; f++)
+				{
+					int findex = offset + f;
+					float pdpt = FragDepth[findex];
+					float zdiff = abs(qdpt - pdpt);
+
+					if (zdiff * zdiff <= pxlradsqr)
+						pcount++;
+
+				}
+			}
 		}
 
-		sncount[qspxl] = pcount;
+		qncount[q] = pcount;
+
+		q += gridDim.x * blockDim.x;
 		
 	}
 
@@ -79,9 +82,12 @@ __global__ void CopyCountsKernelS(int qnum, int len, float searchRad, float cell
 
 
 
-void CopyCountsCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, float* FragDepth, bool* pixelIn, int* sncount)
+void CopyCountsCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragDepth, int* qncount)
 {
-	CopyCountsKernelS << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, searchRad, cellWidth, globalW, globalH, vmMat, pvmMat, vpos, xfcount, xfoffset, FragDepth, pixelIn, sncount);
+	int gridsize = qnum / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
+
+	CopyCountsKernelS << < gridsize, blocksize >> > (qnum, len, searchRad, cellWidth, globalW, globalH, vmMat, pvmMat, xfcount, xfoffset, vpos, FragDepth, qncount);
 
 }
 
@@ -108,19 +114,12 @@ unsigned long long GenerateVertexDistKeyS(int vertex, float dist)
 }
 
 __global__
-void FillDistanceKernelS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceKernelS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* FragVertex, float* FragDepth, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
-	int qspxl = blockIdx.x * blockDim.x + threadIdx.x;
+	int q = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (qspxl < qnum * len * len)
+	if (q < qnum)
 	{
-		int q = qspxl / (len * len);
-		int spxl = qspxl % (len * len);
-		int sx = spxl % len;
-		int sy = spxl / len;
-
-		if (!pixelIn[spxl])
-			return;
 
 		//get vertex//
 		float qx = vpos[3 * q + 0];
@@ -137,59 +136,72 @@ void FillDistanceKernelS(int qnum, int len, float searchRad, float cellWidth, in
 		int qxscreen = (int)(((posXpvm / posWpvm) / 2 + 0.5) * globalW);
 		int qyscreen = (int)(((posYpvm / posWpvm) / 2 + 0.5) * globalH);
 
-		//pixel in the square, based on thread//
-		int xscreen = (qxscreen - len / 2) + sx;
-		int yscreen = (qyscreen - len / 2) + sy;
-		int pxl = xscreen + yscreen * globalW;
+		int qoffset = qnoffset[q];
 
-		if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
-			return;
-
-		if (xfcount[pxl] == 0)
-			return;
-
-		//decide what is the distance range allowed in the cetain pixel (wrt the qpixel)
-		float qdpt = vmMat[2] * qx + vmMat[6] * qy + vmMat[10] * qz + vmMat[14] * qw;
-		float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
-		float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
-		float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
-		//float pxlradsqr = searchRad * searchRad - pxldiffsqr;
-		float pxlradsqr = searchRad * searchRad * 1.44 - pxldiffsqr;
-
-		//go through distances of vxs in this pixel
 		int pcount = 0;
-		int offset = xfoffset[pxl];
-		for (int j = 0; j < xfcount[pxl]; j++)
+		for (int sx = 0; sx < len; sx++)
 		{
-			int pindex = offset + j;
-			
-			float pdpt = FragDepth[pindex];
-			float zdiff = abs(qdpt - pdpt);
-
-			if (zdiff * zdiff <= pxlradsqr)
+			for (int sy = 0; sy < len; sy++)
 			{
-				int vx = FragVertex[pindex];
-				float x = vpos[3 * vx + 0];
-				float y = vpos[3 * vx + 1];
-				float z = vpos[3 * vx + 2];
-				float dist = (qx - x) * (qx - x) + (qy - y) * (qy - y) + (qz - z) * (qz - z);
+				//pixel in the square, based on thread//
+				int xscreen = (qxscreen - len / 2) + sx;
+				int yscreen = (qyscreen - len / 2) + sy;
+				int pxl = xscreen + yscreen * globalW;
 
-				int pos = atomicAdd(&sncount[qspxl], 1);
+				if (xscreen<0 || xscreen>globalW - 1 || yscreen<0 || yscreen>globalH - 1)
+					continue;
 
-				NbVertex[snoffset[qspxl] + pos] = vx;
-				NbVertexDist[snoffset[qspxl] + pos] = GenerateVertexDistKeyS(q, dist);
+				if (xfcount[pxl] == 0)
+					continue;
+
+				//decide what is the distance range allowed in the cetain pixel (wrt the qpixel)
+				float qdpt = vmMat[2] * qx + vmMat[6] * qy + vmMat[10] * qz + vmMat[14] * qw;
+				float xdiff = (abs(xscreen - qxscreen) + 0) * cellWidth;
+				float ydiff = (abs(yscreen - qyscreen) + 0) * cellWidth;
+				float pxldiffsqr = xdiff * xdiff + ydiff * ydiff;
+				//float pxlradsqr = searchRad * searchRad - pxldiffsqr;
+				float pxlradsqr = searchRad * searchRad * 1.44 - pxldiffsqr;
+
+				//go through distances of vxs in this pixel
+				int offset = xfoffset[pxl];
+				int count = xfcount[pxl];
+				for (int f = 0; f < count; f++)
+				{
+					int findex = offset + f;
+
+					float pdpt = FragDepth[findex];
+					float zdiff = abs(qdpt - pdpt);
+
+					if (zdiff * zdiff <= pxlradsqr)
+					{
+						int vx = FragVertex[findex];
+						float x = FragX[findex];
+						float y = FragY[findex];
+						float z = FragZ[findex];
+						float dist = (qx - x) * (qx - x) + (qy - y) * (qy - y) + (qz - z) * (qz - z);
+
+						NbVertex[qoffset + pcount] = vx;
+						NbVertexDist[qoffset + pcount] = GenerateVertexDistKeyS(q, dist);
+
+						pcount++;
+					}
+
+				}
 			}
-
 		}
 
-	}
+		q += gridDim.x * blockDim.x;
 
+	}
+	
 }
 
-void FillDistanceCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, bool* pixelIn, int* sncount, int* snoffset, int* NbVertex, unsigned long long* NbVertexDist)
+void FillDistanceCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* FragVertex, float* FragDepth, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
+	int gridsize = qnum / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
 
-	FillDistanceKernelS << < (qnum * len * len) / 256 + 1, 256 >> > (qnum, len, searchRad, cellWidth, globalW, globalH, vmMat, pvmMat, vpos, xfcount, xfoffset, FragVertex, FragDepth, pixelIn, sncount, snoffset, NbVertex, NbVertexDist);
+	FillDistanceKernelS << < gridsize, blocksize >> > (qnum, len, searchRad, cellWidth, globalW, globalH, vmMat, pvmMat, xfcount, xfoffset, vpos, FragX, FragY, FragZ, FragVertex, FragDepth, qnoffset, NbVertex, NbVertexDist);
 
 
 }

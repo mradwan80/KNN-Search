@@ -29,7 +29,7 @@ void CalculateSquareSizeKernel(int qnum, float* qrads, bool* qkfound, float cell
 
 void CalculateSquareSizeCuda(int qnum, float* qrads, bool* qkfound, float cellWidth, int* qscount)
 {
-	CalculateSquareSizeKernel << < qnum / 256 + 1, 256 >> > (qnum, qrads, qkfound, cellWidth, qscount);
+	CalculateSquareSizeKernel << < qnum / blocksize + 1, blocksize >> > (qnum, qrads, qkfound, cellWidth, qscount);
 }
 
 void CreateSquaresOffsetArrayCuda(int n, int* qscount, int* qsoffset)
@@ -94,7 +94,7 @@ void DebugBinaryKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bo
 }
 void DebugBinaryCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qspxlBool)
 {
-	DebugBinaryKernel << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qspxlBool);
+	DebugBinaryKernel << < sPixelsNum / blocksize + 1, blocksize >> > (qnum, sPixelsNum, qscount, qsoffset, qspxlBool);
 }*/
 
 __global__
@@ -198,7 +198,7 @@ void CountNeighborsKernel(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 
 void CountNeighborsCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, float* FragDepth, int* qncount)
 {
-	CountNeighborsKernel << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, vmMat, pvmMat, vpos, qrads, cellWidth, xfcount, xfoffset, FragDepth, qncount);
+	CountNeighborsKernel << < sPixelsNum / blocksize + 1, blocksize >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, vmMat, pvmMat, vpos, qrads, cellWidth, xfcount, xfoffset, FragDepth, qncount);
 }
 
 void CreateNbsOffsetArrayCudaSV(int n, int* qncount, int* qnoffset)
@@ -355,7 +355,7 @@ void FillDistanceKernelSV(int qnum, int sPixelsNum, int* qscount, int* qsoffset,
 
 void FillDistanceCudaSV(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qkfound, int globalW, int globalH, float* vmMat, float* pvmMat, float* vpos, float* qrads, float cellWidth, int* xfcount, int* xfoffset, int* FragVertex, float* FragDepth, int* qncount, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist)
 {
-	FillDistanceKernelSV << < sPixelsNum / 256 + 1, 256 >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, vmMat, pvmMat, vpos, qrads, cellWidth, xfcount, xfoffset, FragVertex, FragDepth, qncount, qnoffset, NbVertex, NbVertexDist);
+	FillDistanceKernelSV << < sPixelsNum / blocksize + 1, blocksize >> > (qnum, sPixelsNum, qscount, qsoffset, qkfound, globalW, globalH, vmMat, pvmMat, vpos, qrads, cellWidth, xfcount, xfoffset, FragVertex, FragDepth, qncount, qnoffset, NbVertex, NbVertexDist);
 }
 
 
@@ -385,7 +385,7 @@ void UpdateRadsKernel(int qnum, int k, int* qncount, bool* qkfound, float* qrads
 
 void UpdateRadsCuda(int qnum, int k, int* qncount, bool* qkfound, float* qrads) //check count. mainly search for any value less than k or more than k+3//
 {
-	UpdateRadsKernel << <qnum / 256 + 1, 256 >> > (qnum, k, qncount, qkfound, qrads);
+	UpdateRadsKernel << <qnum / blocksize + 1, blocksize >> > (qnum, k, qncount, qkfound, qrads);
 }
 
 bool AllKNbsFoundCuda(int qnum, bool* qkfound)

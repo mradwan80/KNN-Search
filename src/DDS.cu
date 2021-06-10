@@ -14,7 +14,7 @@ __global__ void CountFragsKernel(int vxNum, int globalW, int globalH, float view
 {
 	int v = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (v < vxNum)
+	while (v < vxNum)
 	{
 
 		//get vertex//
@@ -35,13 +35,17 @@ __global__ void CountFragsKernel(int vxNum, int globalW, int globalH, float view
 		if (pxl >= 0 && pxl < globalW * globalH)
 			atomicAdd(&xfcount[pxl], 1);
 
+		v += gridDim.x * blockDim.x;
 	}
 }
 
 
 void CountFragsCuda(int vxNum, int globalW, int globalH, float viewWidth, float* vmMat, float* pvmMat, float* vpos, int* xfcount)
 {
-	CountFragsKernel << <vxNum / 256 + 1, 256 >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount);
+	int gridsize = vxNum / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
+
+	CountFragsKernel << <gridsize, blocksize >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount);
 }
 
 
@@ -88,7 +92,7 @@ __global__ void ProjectFragsForSortKernel(int vxNum, int globalW, int globalH, f
 {
 	int v = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (v < vxNum)
+	while (v < vxNum)
 	{
 
 		//get vertex//
@@ -119,7 +123,7 @@ __global__ void ProjectFragsForSortKernel(int vxNum, int globalW, int globalH, f
 		FragVertex[index] = v;
 		FragDepthPixel[index] = GeneratePixelDepthKey(pxl, depth);
 
-
+		v += gridDim.x * blockDim.x;
 
 	}
 
@@ -130,7 +134,7 @@ __global__ void ProjectFragsKernel(int vxNum, int globalW, int globalH, float vi
 {
 	int v = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (v < vxNum)
+	while (v < vxNum)
 	{
 
 		//get vertex//
@@ -159,17 +163,20 @@ __global__ void ProjectFragsKernel(int vxNum, int globalW, int globalH, float vi
 
 		FragVertex[index] = v;
 
-
+		v += gridDim.x * blockDim.x;
 	}
 
 }
 
 void ProjectFragsCuda(int vxNum, int globalW, int globalH, float viewWidth, float* vmMat, float* pvmMat, float* vpos, int* xfcount, int* xfoffset, float* FragDepth, int* FragVertex, unsigned long long* FragDepthPixel, bool DoSortFrags)
 {
+	int gridsize = vxNum / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
+
 	if(DoSortFrags)
-		ProjectFragsForSortKernel << <vxNum / 256 + 1, 256 >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount, xfoffset, FragDepth, FragVertex, FragDepthPixel);
+		ProjectFragsForSortKernel << <gridsize, blocksize >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount, xfoffset, FragDepth, FragVertex, FragDepthPixel);
 	else
-		ProjectFragsKernel << <vxNum / 256 + 1, 256 >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount, xfoffset, FragVertex);
+		ProjectFragsKernel << <gridsize, blocksize >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount, xfoffset, FragVertex);
 }
 
 //works fine as long as #frags is ok. when not, need reformulating, so that not all buffers are allocated at same time//
@@ -207,6 +214,27 @@ void SortFragsCuda(int FragsNum, float* FragDepth, int* FragVertex, unsigned lon
 
 }
 
+__global__ void GetFragsCoordsKernel(int N, int* FragVertex, float* vpos, float* FragX, float* FragY, float* FragZ)
+{
+	int frag = blockIdx.x * blockDim.x + threadIdx.x;
+	while (frag < N)
+	{
+		int v = FragVertex[frag];
+		FragX[frag] = vpos[3 * v + 0];
+		FragY[frag] = vpos[3 * v + 1];
+		FragZ[frag] = vpos[3 * v + 2];
+
+		frag += gridDim.x * blockDim.x;
+	}
+}
+
+void GetFragsCoordsCuda(int N, int* FragVertex, float* vpos, float* FragX, float* FragY, float* FragZ)
+{
+	int gridsize = N / blocksize + 1;
+	if (gridsize > maxblocks) gridsize = maxblocks;
+
+	GetFragsCoordsKernel << <gridsize, blocksize >> > (N, FragVertex, vpos, FragX, FragY, FragZ);
+}
 
 
 //use a template?
@@ -239,4 +267,6 @@ void FillAllWithValue(unsigned long long* arr, int sz, unsigned long long val)
 	thrust::device_ptr<unsigned long long> d = thrust::device_pointer_cast(arr);
 	thrust::fill(d, d + sz, val);
 }
+
+
 
