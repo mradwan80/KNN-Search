@@ -41,10 +41,9 @@ void DDS::kNNsearchWithSort(int k, float SearchRad)
 
 	cudaEventRecord(auxstart);
 
-	//make a count array of size sqr * qs
+	//make a count array//
 	cudaMalloc((void**)&qncount, qnum * sizeof(int));
 
-	//thread per(q, pixel): copy counts(0 for out pixels)
 	CopyCountsCudaS(qnum, len, SearchRad, cellWidth, globalW, globalH, matrixVM, matrixPVM, xfcount, xfoffset, vpos, FragDepth, qncount);
 
 	checkCUDAError("Counting candidate neighbors failed");
@@ -60,14 +59,14 @@ void DDS::kNNsearchWithSort(int k, float SearchRad)
 
 	cudaEventRecord(auxstart);
 
-	//make offset array
+	//make offset array//
 	cudaMalloc((void**)&qnoffset, qnum * sizeof(int));
 	CreateNbsOffsetArrayCuda(qnum, qncount, qnoffset);
 
 	//get sums in sums array(of size q)
 	NbsNum = SumNbsCuda(qnum, qncount);
 
-	// make vertex and distance arrays(of size sum of sums)
+	// make vertex and distance arrays(of size sum of sums)//
 	cudaMalloc((void**)&NbVertexDist, NbsNum * sizeof(unsigned long long));
 	cudaMalloc((void**)&NbVertex, NbsNum * sizeof(int));
 
@@ -84,7 +83,6 @@ void DDS::kNNsearchWithSort(int k, float SearchRad)
 
 	cudaEventRecord(auxstart);
 
-	//thread per(q, pixel) : calculate distance to q, save vertex id, save(q, distance)
 	FillDistanceCudaS(qnum, len, SearchRad, cellWidth, globalW, globalH, matrixVM, matrixPVM, xfcount, xfoffset, vpos, FragX, FragY, FragZ, FragVertex, FragDepth, qnoffset, NbVertex, NbVertexDist);
 
 	checkCUDAError("Getting neighbors distances failed");
@@ -124,7 +122,7 @@ void DDS::kNNsearchWithSort(int k, float SearchRad)
 	//end//
 	////////////
 
-	//copy in new array
+	//copy in new array//
 	Nbs.resize(qnum); for (int i = 0; i < qnum; i++) { Nbs[i].resize(k); for (int j = 0; j < k; j++) Nbs[i][j] = -1; }
 	CopyKNeighborsCuda(k, SearchRad, qnum, len, qncount, NbsNum, NbVertex, vxPos->size(), vpos, Nbs);
 

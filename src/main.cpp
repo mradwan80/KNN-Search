@@ -12,45 +12,11 @@ using namespace std;
 
 void main()
 {
-	//int GlobalW = 4096;
-	//int GlobalH = 4096;
-	//int GlobalW = 1024;
-	//int GlobalH = 1024;
-	//int GlobalW = 512;
-	//int GlobalH = 512;
 	//int GlobalW = 256;
 	//int GlobalH = 256;
 	int GlobalW = 128;
 	int GlobalH = 128;
-	//int GlobalW = 64;
-	//int GlobalH = 64;
-	//int GlobalW = 32;
-	//int GlobalH = 32;
-	//int GlobalW = 16;
-	//int GlobalH = 16;
-	//int GlobalW = 8;
-	//int GlobalH = 8;
-	//int GlobalW = 4;
-	//int GlobalH = 4;
-	//int GlobalW = 2;
-	//int GlobalH = 2;
-	//int GlobalW = 1600;
-	//int GlobalH = 1200;
-	//int GlobalW = 800;
-	//int GlobalH = 600;
 
-
-	/*glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-
-	glutInitWindowSize(GlobalW, GlobalH);
-	glutInitWindowPosition(0, 0);
-	glutCreateWindow(argv[0]);
-
-	glewExperimental = GL_TRUE; // for experimental extensions
-	GLenum err = glewInit(); // initialize GLEW
-
-	glEnable(GL_PROGRAM_POINT_SIZE);*/
 
 	int pnum;
 	vector<pointCoords>coords;
@@ -64,21 +30,10 @@ void main()
 	//read file//
 	/////////////
 
-	string model_path = "C://models//OFF//";
-	//string model_name = "bunny2"; SearchRad = 0.00495676;
-	//string model_name = "armadillo";  SearchRad = 0.904385*1.5;
-	//string model_name = "ant"; SearchRad = 0.0278831*1.5;
-	//string model_name = "bird"; SearchRad = 0.028972;
-	//string model_name = "glass"; SearchRad = 0.0230571;
-	//string model_name = "cup"; SearchRad = 0.0264987;
-	//string model_name = "human"; SearchRad = 0.024626;
-	//string model_name = "elephant"; SearchRad = 0.0132349;
-	//string model_name = "dragon3";
-	//string model_name = "dragon2";
-	string model_name = "dragon"; SearchRad = 0.00326/2;
-	//string model_name = "happy"; SearchRad = 0.00316/2;
-	
-	
+	string model_path = "data//";
+	string model_name = "bunny2"; SearchRad = 0.00495676;
+	//string model_name = "dragon"; SearchRad = 0.00326/2;
+		
 	ifstream input_file(model_path + model_name + ".OFF");
 
 
@@ -209,13 +164,6 @@ void main()
 		}
 		cout << "\n";
 
-		/*cout << "k neareset neighbors of " << i << " are: ";
-		for (int u = 0; u < k; u++)
-		{
-			if (sqrt(mindistance[u]) <= SearchRad)
-				std::cout << "[" << coords[minvertex[u]].x << ", " << coords[minvertex[u]].y << ", " << coords[minvertex[u]].z << "], ";
-		}
-		cout << "\n";*/
 	}
 
 

@@ -16,7 +16,7 @@ __global__ void CopyCountsKernelS(int qnum, int len, float searchRad, float cell
 	while (q < qnum)
 	{
 
-		//get vertex//
+		//get vertex coords//
 		float qx = vpos[3 * q + 0];
 		float qy = vpos[3 * q + 1];
 		float qz = vpos[3 * q + 2];
@@ -37,7 +37,6 @@ __global__ void CopyCountsKernelS(int qnum, int len, float searchRad, float cell
 			for (int sy = 0; sy < len; sy++)
 			{
 
-				//pixel in the square, based on thread//
 				int xscreen = (qxscreen - len / 2) + sx;
 				int yscreen = (qyscreen - len / 2) + sy;
 				int pxl = xscreen + yscreen * globalW;
@@ -121,7 +120,7 @@ void FillDistanceKernelS(int qnum, int len, float searchRad, float cellWidth, in
 	if (q < qnum)
 	{
 
-		//get vertex//
+		//get vertex coords//
 		float qx = vpos[3 * q + 0];
 		float qy = vpos[3 * q + 1];
 		float qz = vpos[3 * q + 2];
@@ -143,7 +142,6 @@ void FillDistanceKernelS(int qnum, int len, float searchRad, float cellWidth, in
 		{
 			for (int sy = 0; sy < len; sy++)
 			{
-				//pixel in the square, based on thread//
 				int xscreen = (qxscreen - len / 2) + sx;
 				int yscreen = (qyscreen - len / 2) + sy;
 				int pxl = xscreen + yscreen * globalW;

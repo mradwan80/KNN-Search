@@ -17,7 +17,7 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 
 	while (q < qnum)
 	{
-		//get vertex//
+		//get vertex coords//
 		float qx = vpos[3 * q + 0];
 		float qy = vpos[3 * q + 1];
 		float qz = vpos[3 * q + 2];
@@ -38,7 +38,6 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 		{
 			for (int sy = 0; sy < len; sy++)
 			{
-				//pixel in the square, based on thread//
 				int xscreen = (qxscreen - len / 2) + sx;
 				int yscreen = (qyscreen - len / 2) + sy;
 				int pxl = xscreen + yscreen * globalW;
@@ -55,7 +54,6 @@ __global__ void CopyCountsKernel(int qnum, int len, float searchRad, int globalW
 				{
 					int findex = offset + f;
 
-					//get pos
 					float x = FragX[findex];
 					float y = FragY[findex];
 					float z = FragZ[findex];
@@ -92,7 +90,6 @@ void CreateNbsOffsetArrayCuda(int n, int* qncount, int* qnoffset)
 	thrust::device_ptr<int> o = thrust::device_pointer_cast(qnoffset);
 	thrust::device_ptr<int> c = thrust::device_pointer_cast(qncount);
 
-	//call thrust function
 	thrust::exclusive_scan(c, c + n, o);
 }
 
@@ -136,7 +133,7 @@ __global__ void FillDistanceKernel(int qnum, int len, float searchRad, int globa
 
 	while (q < qnum)
 	{
-		//get vertex//
+		//get vertex coords//
 		float qx = vpos[3 * q + 0];
 		float qy = vpos[3 * q + 1];
 		float qz = vpos[3 * q + 2];
@@ -158,7 +155,6 @@ __global__ void FillDistanceKernel(int qnum, int len, float searchRad, int globa
 		{
 			for (int sy = 0; sy < len; sy++)
 			{
-				//pixel in the square, based on thread//
 				int xscreen = (qxscreen - len / 2) + sx;
 				int yscreen = (qyscreen - len / 2) + sy;
 				int pxl = xscreen + yscreen * globalW;
@@ -175,7 +171,6 @@ __global__ void FillDistanceKernel(int qnum, int len, float searchRad, int globa
 				{
 					int findex = offset + f;
 					
-					//get pos
 					float x = FragX[findex];
 					float y = FragY[findex];
 					float z = FragZ[findex];

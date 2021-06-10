@@ -1,5 +1,5 @@
 #include "DDS.h"
-#include<nvml.h>
+//#include<nvml.h>
 
 void DDS::kNNsearch(int k, float SearchRad)
 {
@@ -48,7 +48,7 @@ void DDS::kNNsearch(int k, float SearchRad)
 
 	cudaEventRecord(auxstart);
 
-	//make a count array of size sqr * qs
+	//make a count array//
 	cudaMalloc((void**)&qncount, qnum * sizeof(int));
 
 	CopyCountsCuda(qnum, len, SearchRad, globalW, globalH, matrixPVM, xfcount, xfoffset, vpos, FragX, FragY, FragZ, qncount);
@@ -71,7 +71,7 @@ void DDS::kNNsearch(int k, float SearchRad)
 
 	NbsNum = SumNbsCuda(qnum, qncount);
 
-	// make vertex and distance arrays(of size sum of sums)
+	// make vertex and distance arrays(of size sum of sums)//
 	cudaMalloc((void**)&NbVertexDist, NbsNum * sizeof(unsigned long long));
 	cudaMalloc((void**)&NbVertex, NbsNum * sizeof(int));
 

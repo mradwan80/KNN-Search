@@ -17,7 +17,7 @@ __global__ void CountFragsKernel(int vxNum, int globalW, int globalH, float view
 	while (v < vxNum)
 	{
 
-		//get vertex//
+		//get vertex coords//
 		float x = vpos[3 * v + 0];
 		float y = vpos[3 * v + 1];
 		float z = vpos[3 * v + 2];
@@ -54,7 +54,6 @@ void SetOffsetVectorCuda(int pxNum, int* xfcount, int* xfoffset)
 	thrust::device_ptr<int> o = thrust::device_pointer_cast(xfoffset);
 	thrust::device_ptr<int> c = thrust::device_pointer_cast(xfcount);
 
-	//call thrust function
 	thrust::exclusive_scan(c, c + pxNum, o);
 }
 
@@ -95,7 +94,7 @@ __global__ void ProjectFragsForSortKernel(int vxNum, int globalW, int globalH, f
 	while (v < vxNum)
 	{
 
-		//get vertex//
+		//get vertex coords//
 		float x = vpos[3 * v + 0];
 		float y = vpos[3 * v + 1];
 		float z = vpos[3 * v + 2];
@@ -137,7 +136,7 @@ __global__ void ProjectFragsKernel(int vxNum, int globalW, int globalH, float vi
 	while (v < vxNum)
 	{
 
-		//get vertex//
+		//get vertex coords//
 		float x = vpos[3 * v + 0];
 		float y = vpos[3 * v + 1];
 		float z = vpos[3 * v + 2];
@@ -179,7 +178,7 @@ void ProjectFragsCuda(int vxNum, int globalW, int globalH, float viewWidth, floa
 		ProjectFragsKernel << <gridsize, blocksize >> > (vxNum, globalW, globalH, viewWidth, vmMat, pvmMat, vpos, xfcount, xfoffset, FragVertex);
 }
 
-//works fine as long as #frags is ok. when not, need reformulating, so that not all buffers are allocated at same time//
+//works fine as long as #frags is ok. when not, needs reformulating, so that not all buffers are allocated at same time//
 void SortFragsCuda(int FragsNum, float* FragDepth, int* FragVertex, unsigned long long* FragDepthPixel)
 {
 	//device pointers//
@@ -237,7 +236,6 @@ void GetFragsCoordsCuda(int N, int* FragVertex, float* vpos, float* FragX, float
 }
 
 
-//use a template?
 void FillAllWithValue(int* arr, int sz, int val)
 {
 

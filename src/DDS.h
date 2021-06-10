@@ -32,7 +32,6 @@ private:
 	bool debug_details;
 
 	vector<pointCoords>* vxPos;
-	vector<int>vxIndex;
 
 	float viewWidth;
 	glm::mat4 vmMat, pvmMat;
@@ -53,12 +52,6 @@ private:
 	void SortFrags();
 	void GetFragsCoords();
 	void FreeMemory();
-
-	void TestCountFrags();
-	void TestCreateOffset();
-	void TestProjectFrags();
-	void TestSortFrags();
-	
 
 	void kNNsearch(int k, float SearchRad);
 	void kNNsearchWithSort(int k, float SearchRad);
@@ -134,7 +127,4 @@ bool AllKNbsFoundCuda(int qnum, bool* qkfound);
 void SortNeighborsCudaSV(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist);
 void CopyKNeighborsCudaSV(int qnum, int* qncount, int NbsNum, int* NbVertex, vector<vector<int>>& Nbs);*/
 
-
-//void DebugBinaryCuda(int qnum, int sPixelsNum, int* qscount, int* qsoffset, bool* qspxlBool);
-#pragma once
 
