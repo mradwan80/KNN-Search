@@ -10,7 +10,7 @@
 #include "DDS.h"
 using namespace std;
 
-void main()
+int main()
 {
 	//int GlobalW = 256;
 	//int GlobalH = 256;
@@ -166,6 +166,7 @@ void main()
 
 	}
 
+	return 1;
 
 }
 
