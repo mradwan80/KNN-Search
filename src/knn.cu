@@ -237,7 +237,7 @@ void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDi
 
 }
 
-void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* qncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs)
+void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* qncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int> >& Nbs)
 {
 	int* NbVertexHost = new int[NbsNum];
 	cudaMemcpy(NbVertexHost, NbVertex, NbsNum * sizeof(int), cudaMemcpyDeviceToHost);

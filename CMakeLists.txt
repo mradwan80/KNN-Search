@@ -1,7 +1,7 @@
-# Author: e1027470@student.tuwien.ac.at
-
 cmake_minimum_required(VERSION 2.8)
 project(knn)
+
+set (CMAKE_CXX_STANDARD 11)
 
 #### detect operating system ####
 #if(WIN32)
@@ -12,7 +12,6 @@ project(knn)
 #  set(SYS "${SYSTEM}${ARCH}")
 #endif()
 #message("System detected: ${SYS}")
-
 
 
 find_package(CUDA REQUIRED)

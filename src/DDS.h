@@ -62,7 +62,7 @@ private:
 	int len;
 	int NbsNum;
 	unsigned long long* NbVertexDist; int* NbVertex;
-	vector<vector<int>> Nbs;
+	vector<vector<int> > Nbs;
 	int* qncount;	int* qnoffset;
 
 	//varying rad stuff
@@ -107,7 +107,7 @@ void CreateNbsOffsetArrayCuda(int n, int* qncount, int* qnoffset);
 int SumNbsCuda(int n, int* qncount);
 void FillDistanceCuda(int qnum, int len, float searchRad, int globalW, int globalH, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragX, float* FragY, float* FragZ, int* FragVertex, int* qnoffset, int* NbVertex, unsigned long long* NbVertexDist);
 void SortNeighborsCuda(int NbsNum, int* NbVertex, unsigned long long* NbVertexDist);
-void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* qncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int>>& Nbs);
+void CopyKNeighborsCuda(int k, float SearchRad, int qnum, int len, int* qncount, int NbsNum, int* NbVertex, int vnum, float* vpos, vector<vector<int> >& Nbs);
 
 //knn with sort functions//
 void CopyCountsCudaS(int qnum, int len, float searchRad, float cellWidth, int globalW, int globalH, float* vmMat, float* pvmMat, int* xfcount, int* xfoffset, float* vpos, float* FragDepth, int* qncount);
