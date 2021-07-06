@@ -30,7 +30,7 @@ int main()
 	//read file//
 	/////////////
 
-	string model_path = "data//";
+	string model_path = "..//data//";
 	string model_name = "bunny2"; SearchRad = 0.00495676;
 	//string model_name = "dragon"; SearchRad = 0.00326/2;
 		
