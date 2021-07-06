@@ -3,8 +3,6 @@ project(knn LANGUAGES CXX CUDA)
 
 set (CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_CUDA_COMPILER $ENV{CUDA_COMPILER})
-
 #find_package(CUDA REQUIRED)
 
 #### use cuda ####
