@@ -1,20 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
-project(knn)
+project(knn LANGUAGES CXX CUDA)
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 
-#### detect operating system ####
-#if(WIN32)
-#  set(SYSTEM "Windows")
-#  set(SYS "${SYSTEM}${ARCH}")
-#elseif(UNIX)
-#  set(SYSTEM "Unix")
-#  set(SYS "${SYSTEM}${ARCH}")
-#endif()
-#message("System detected: ${SYS}")
-
-
-find_package(CUDA REQUIRED)
+#find_package(CUDA REQUIRED)
 
 #### use cuda ####
 if(WIN32)
@@ -26,23 +15,11 @@ endif()
 #SET(CUDA_SEPARABLE_COMPILATION ON)
 
 
-#### use glew ####
-#find_package(GLEW)
-#include_directories(${GLEW_INCLUDE_DIRS})
+include_directories(glm $ENV{CUDA_INCLUDE_DIRECTORY})
+link_directories($ENV{CUDA_LIBRARY_DIRECTORY})
 
-#### use glfw ####
-#if(WIN32)
-#	add_subdirectory(ext/glfw)
-#	include_directories(ext/glfw/include)
-#else()
-#	find_package(PkgConfig REQUIRED)
-#	pkg_search_module(GLFW REQUIRED glfw3)
-#	include_directories(${GLFW_INCLUDE_DIRS})
-#endif()
-
-include_directories(glm)
-
-CUDA_ADD_EXECUTABLE(
+#CUDA_ADD_EXECUTABLE(
+ADD_EXECUTABLE(
 knn 
 src/knn.cpp
 src/knn.cu
@@ -53,12 +30,12 @@ src/DDS.cpp
 src/DDS.cu
 src/main.cpp)
 
-if(WIN32)
-	target_link_libraries(knn)
-elseif(UNIX)
-	target_link_libraries(knn ${CUDA_CUDART_LIBRARY})
-endif()
+#if(WIN32)
+#	target_link_libraries(knn)
+#elseif(UNIX)
+#	target_link_libraries(knn ${CUDA_CUDART_LIBRARY})
+#endif()
 
-SET(GCC_OPTIMIZATION_FLAGS "-O2 -march=native")
-add_definitions(${GCC_OPTIMIZATION_FLAGS})
+#SET(GCC_OPTIMIZATION_FLAGS "-O2 -march=native")
+#add_definitions(${GCC_OPTIMIZATION_FLAGS})
 
