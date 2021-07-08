@@ -12,6 +12,8 @@ else()
 endif()
 
 if(WIN32)
+	#include_directories(glm $ENV{LIBS_DIRECTORY})	
+	include_directories(glm)	
 else()
 	include_directories(glm $ENV{CUDA_INCLUDE_DIRECTORY})
 	link_directories($ENV{CUDA_LIBRARY_DIRECTORY})
