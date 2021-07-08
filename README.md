@@ -3,17 +3,28 @@ This program implements a k-Nearest Neighbors search algorithm, based on using a
 
 ********************************************************************************
 
-The program is cross platform (Windows and Linux). It was tested on:
+The program is cross platform (Windows and Linux). It was tested on a machine with GeForce GTX 950M GPU, in environments:
 
--Windows 11 Home. build 22000.51.
+Windows: 
 
--CMake GUI 3.21.0 (for windows build), with generator Visual Studio 14 2015
+-11 Home. build 22000.51.
 
--WSL2 (for linux build test) Ubuntu-20.04
+-Cuda 10.2
 
--Cuda compilation tools, release 9.1, V9.1.85
+-CMake GUI 3.21.0, with generator Visual Studio 14 2015
 
--GeForce GTX 950M
+
+WSL2 (for linux build test):
+
+-Ubuntu-20.04
+
+-Cuda 11.0
+
+-gcc-9, g++-9
+
+-CMake 3.16.3
+
+
 
 
 
