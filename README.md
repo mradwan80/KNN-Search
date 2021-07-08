@@ -6,46 +6,40 @@ The program is cross platform (Windows and Linux).
 
 ********************************************************************************
 
-# Running on Windows
+## Running on Windows
 
 Use CMake to generate a Visual Studio. Then open the ALL_BUILD project in Microsoft Visual Studio and build it. Then run the knn project.
 
 The program was tested on a windows environmet, with specifications:
 
--Windows 11 Home. build 22000.51.
-
--Cuda 10.2
-
--CMake GUI 3.21.0, with generator Visual Studio 14 2015
-
--GeForce GTX 950M
+* Windows 11 Home. build 22000.51.
+* Cuda 10.2
+* CMake GUI 3.21.0, with generator Visual Studio 14 2015
+* GeForce GTX 950M
 
 
 ********************************************************************************
 
-# Running on Linux
+## Running on Linux
 
-You will need to define the environment variables: CUDA_INCLUDE_DIRECTORY, CUDA_LIBRARY_DIRECTORY, CUDACXX. Then move to the directory of the project. Then:
+You will need to define the environment variables: 
+* CUDA_INCLUDE_DIRECTORY, 
+* CUDA_LIBRARY_DIRECTORY,
+*  CUDACXX. 
+  
+Then move to the directory of the project, and:
 
-mkdir build
-
-cd build
-
-cmake ..
-
-make
-
-./knn
+* mkdir build
+* cd build
+* cmake ..
+* make
+* ./knn
 
 
 The project was tested on WSL2 (Windows Subsystem for Linux 2), with specifications:
 
--Ubuntu-20.04
-
--Cuda 11.0
-
--gcc-9, g++-9
-
--CMake 3.16.3
-
--GeForce GTX 950M
+* Ubuntu-20.04
+* Cuda 11.0
+* gcc-9, g++-9
+* CMake 3.16.3
+* GeForce GTX 950M
