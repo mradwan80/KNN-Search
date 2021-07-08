@@ -1,20 +1,44 @@
 # KNN-Search
 This program implements a k-Nearest Neighbors search algorithm, based on using a structure named the DDS (discrete depth structure). In short, the DDS extends the cells of a view aligned 2D grid to depth piles. Points are mapped to the piles of the corresponding cells, and sorted by depth. A link to a journal paper describing the structure will be provided soon.
 
+
+The program is cross platform (Windows and Linux).
+
 ********************************************************************************
 
-The program is cross platform (Windows and Linux). It was tested on a machine with GeForce GTX 950M GPU, in environments:
+# Running on Windows
 
-Windows: 
+Use CMake to generate a Visual Studio. Then open the ALL_BUILD project in Microsoft Visual Studio and build it. Then run the knn project.
 
--11 Home. build 22000.51.
+The program was tested on a windows environmet, with specifications:
+
+-Windows 11 Home. build 22000.51.
 
 -Cuda 10.2
 
 -CMake GUI 3.21.0, with generator Visual Studio 14 2015
 
+-GeForce GTX 950M
 
-WSL2 (for linux build test):
+
+********************************************************************************
+
+# Running on Linux
+
+You will need to define the environment variables: CUDA_INCLUDE_DIRECTORY, CUDA_LIBRARY_DIRECTORY, CUDACXX. Then move to the directory of the project. Then:
+
+mkdir build
+
+cd build
+
+cmake ..
+
+make
+
+./knn
+
+
+The project was tested on WSL2 (Windows Subsystem for Linux 2), with specifications:
 
 -Ubuntu-20.04
 
@@ -24,9 +48,4 @@ WSL2 (for linux build test):
 
 -CMake 3.16.3
 
-
-
-
-
-To run in linux, it is important to define these environment variables: CUDA_INCLUDE_DIRECTORY, CUDA_LIBRARY_DIRECTORY, CUDACXX.
-
+-GeForce GTX 950M
