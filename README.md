@@ -10,7 +10,7 @@ The program is cross platform (Windows and Linux).
 
 Use CMake to generate a Visual Studio. Then open the ALL_BUILD project in Visual Studio IDE and build it. Then run the knn project.
 
-The program was tested on a windows environmet, with specifications:
+The program was tested in a windows environment, with the following specifications:
 
 * Windows 11 Home. build 22000.51.
 * Cuda 10.2
@@ -36,7 +36,7 @@ Then move to the directory of the project, and:
 * ./knn
 
 
-The project was tested on WSL2 (Windows Subsystem for Linux 2), with specifications:
+The project was tested on WSL2 (Windows Subsystem for Linux 2), with the following specifications:
 
 * Ubuntu-20.04
 * Cuda 11.0
