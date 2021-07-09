@@ -8,7 +8,7 @@ The program is cross platform (Windows and Linux).
 
 ## Running on Windows
 
-Use CMake to generate a Visual Studio. Then open the ALL_BUILD project in Microsoft Visual Studio and build it. Then run the knn project.
+Use CMake to generate a Visual Studio. Then open the ALL_BUILD project in Visual Studio IDE and build it. Then run the knn project.
 
 The program was tested on a windows environmet, with specifications:
 
